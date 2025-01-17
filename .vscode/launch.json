@@ -6,6 +6,20 @@
     "configurations": [
       {
         "type": "java",
+        "name": "DmsVertxLauncher",
+        "request": "launch",
+        "mainClass": "com.dms.apps.vertx.common.DmsVertxLauncher",
+        "projectName": "vertx-common"
+      },
+      {
+        "type": "java",
+        "name": "CommonVerticle",
+        "request": "launch",
+        "mainClass": "com.dms.apps.vertx.CommonVerticle",
+        "projectName": "vertx-common"
+      },
+      {
+        "type": "java",
         "name": "MainApplication",
         "request": "launch",
         "mainClass": "com.dms.apps.vertx.common.MainApplication",
