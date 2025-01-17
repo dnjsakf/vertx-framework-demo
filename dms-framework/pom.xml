@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+	
+	<!-- ROOT Package -->
+	<packaging>pom</packaging>
+	
+	<!-- Proejct Information -->
+  <groupId>com.dms.apps</groupId>
+  <artifactId>dms-framework</artifactId>
+  <version>${project.version}</version>
+  <name>dms-framework</name>
+
+	<!-- Proejct Global Properties -->
+  <properties>
+		<project.version>1.0.0</project.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>17</java.version>
+		<vertx.version>3.9.16</vertx.version>
+		<postgres.version>42.7.4</postgres.version>
+  </properties>
+
+	<!-- Netty 의존성 충돌 날 경우 제거 -->
+	<dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-dependencies</artifactId>
+        <version>${vertx.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+		<!-- Vert.x Dependencies -->
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-core</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-web</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-config</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-config-yaml</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-web-api-service</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-service-discovery</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-circuit-breaker</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-pg-client</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+
+		<!-- Lombok Dependencies -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.22</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- JDBC Dependencies -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>${postgres.version}</version>
+		</dependency>
+
+		<!-- Reflections Dependencies -->
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+			<version>0.9.11</version>
+		</dependency>
+
+		<!-- Logging Dependencies -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.5.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>2.0.16</version>
+		</dependency>
+  
+  </dependencies>
+
+  <build>
+    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <source>${java.version}</source>
+            <target>${java.version}</target>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+	<modules>
+		<module>vertx-common</module>
+	</modules>
+
+</project>

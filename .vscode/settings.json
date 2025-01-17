@@ -1,0 +1,28 @@
+{
+  "editor.tabSize": 2,
+  "java.configuration.runtimes": [
+    {
+        "name": "JavaSE-17",
+        "path": "C:\\dev\\java\\openjdk-17.0.3.0.6",
+        "default":  true
+    }
+  ],
+  "java.jdt.ls.java.home": "C:\\dev\\java\\openjdk-17.0.3.0.6",
+  "maven.executable.options": "--settings ./.vscode/settings.xml",
+  "maven.terminal.customEnv": [
+    {
+      "environmentVariable": "JAVA_HOME",
+      "value": "C:\\dev\\java\\openjdk-17.0.3.0.6"
+    },
+    {
+      "environmentVariable": "MAVEN_OPTS",
+      "value": "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000"
+    },
+    {
+      "environmentVariable": "WORKSPACE_FOLDER",
+      "value": "${workspaceFolder}\\.vscode"
+    },
+  ],
+  "maven.terminal.favorites": [
+  ]
+}
