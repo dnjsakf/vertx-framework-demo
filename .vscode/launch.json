@@ -6,6 +6,27 @@
     "configurations": [
       {
         "type": "java",
+        "name": "Application",
+        "request": "launch",
+        "mainClass": "com.dms.apps.rest.Application",
+        "projectName": "vertx-rest-api"
+      },
+      {
+        "type": "java",
+        "name": "RestApiVerticle",
+        "request": "launch",
+        "mainClass": "com.dms.apps.rest.RestApiVerticle",
+        "projectName": "vertx-rest-api"
+      },
+      {
+        "type": "java",
+        "name": "RestApiVerticle",
+        "request": "launch",
+        "mainClass": "com.dms.apps.RestApiVerticle",
+        "projectName": "vertx-rest-api"
+      },
+      {
+        "type": "java",
         "name": "DmsVertxLauncher",
         "request": "launch",
         "mainClass": "com.dms.apps.vertx.common.DmsVertxLauncher",

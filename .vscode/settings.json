@@ -1,18 +1,18 @@
 {
-  "editor.tabSize": 2,
+  "editor.tabSize": 4,
   "java.configuration.runtimes": [
     {
         "name": "JavaSE-17",
-        "path": "C:\\dev\\java\\openjdk-17.0.3.0.6",
+        "path": "C:\\dev\\01.lang\\java\\java-17-openjdk",
         "default":  true
     }
   ],
-  "java.jdt.ls.java.home": "C:\\dev\\java\\openjdk-17.0.3.0.6",
+  "java.jdt.ls.java.home": "C:\\dev\\01.lang\\java\\java-17-openjdk",
   "maven.executable.options": "--settings ./.vscode/settings.xml",
   "maven.terminal.customEnv": [
     {
       "environmentVariable": "JAVA_HOME",
-      "value": "C:\\dev\\java\\openjdk-17.0.3.0.6"
+      "value": "C:\\dev\\01.lang\\java\\java-17-openjdk"
     },
     {
       "environmentVariable": "MAVEN_OPTS",
@@ -24,5 +24,10 @@
     },
   ],
   "maven.terminal.favorites": [
-  ]
+    {
+      "command": "vertx:run",
+      "debug": false
+    }
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

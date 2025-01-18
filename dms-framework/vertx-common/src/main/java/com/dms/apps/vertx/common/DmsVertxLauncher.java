@@ -1,5 +1,7 @@
 package com.dms.apps.vertx.common;
 
+import com.dms.apps.vertx.common.abs.DmsAbstractVerticle;
+
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -17,8 +19,14 @@ public class DmsVertxLauncher extends Launcher {
 
   private static ConfigRetriever retriever;
 
+  private Vertx newVertx;
+
   public static void main(String[] args) {
-    new DmsVertxLauncher().dispatch(new String[]{
+    new DmsVertxLauncher().start();
+  }
+
+  public void start(){
+    dispatch(new String[]{
       "run", "java:"+DmsVertxVerticle.class.getCanonicalName()
     });
   }
@@ -27,6 +35,8 @@ public class DmsVertxLauncher extends Launcher {
   public void beforeStartingVertx(VertxOptions options) {
     log.info("1. beforeStartingVertx");
 
+    newVertx = Vertx.vertx();
+
     ConfigStoreOptions jsonFileStore = new ConfigStoreOptions()
       .setType("file")
       .setFormat("json")
@@ -34,9 +44,10 @@ public class DmsVertxLauncher extends Launcher {
 
     ConfigRetrieverOptions retrieverOptions = new ConfigRetrieverOptions().addStore(jsonFileStore);
 
-    retriever = ConfigRetriever.create(Vertx.vertx(), retrieverOptions);
+    retriever = ConfigRetriever.create(newVertx, retrieverOptions);
     retriever.getConfig(ar -> {
       if( ar.succeeded() ){
+        log.info("Options Loaded");
         JsonObject config = ar.result();
 
         int eventLoopPoolSize = config.getInteger("eventLoopPoolSize", VertxOptions.DEFAULT_EVENT_LOOP_POOL_SIZE);
@@ -59,16 +70,27 @@ public class DmsVertxLauncher extends Launcher {
 
   @Override
   public void beforeDeployingVerticle(DeploymentOptions deploymentOptions) {
-
+    log.info("3. beforeDeployingVerticle");
   }
 
   @Override
   public void beforeStoppingVertx(Vertx vertx) {
     log.info("4. beforeStoppingVertx");
+    newVertx.close(ar -> {
+      if( ar.succeeded() ){
+        log.info("Bye...");
+      } else {
+        log.error(ar.cause().getMessage(), ar.cause());
+      }
+    });
   }
   
   public static void getConfig(Handler<AsyncResult<JsonObject>> completionHandler){
     retriever.getConfig(completionHandler);
+  }
+
+  public Vertx getVertx(){
+    return newVertx;
   }
 
 }
