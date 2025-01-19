@@ -6,6 +6,13 @@
     "configurations": [
       {
         "type": "java",
+        "name": "RestApiVerticle2",
+        "request": "launch",
+        "mainClass": "com.dms.apps.rest.RestApiVerticle2",
+        "projectName": "vertx-rest-api"
+      },
+      {
+        "type": "java",
         "name": "Application",
         "request": "launch",
         "mainClass": "com.dms.apps.rest.Application",

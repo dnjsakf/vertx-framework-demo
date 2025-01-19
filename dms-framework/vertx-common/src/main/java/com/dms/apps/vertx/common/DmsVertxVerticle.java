@@ -14,6 +14,7 @@ import com.dms.apps.vertx.common.annotations.DmsVertxMapping;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -21,6 +22,10 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.pgclient.PgBuilder;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.PoolOptions;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -36,14 +41,18 @@ public class DmsVertxVerticle extends AbstractVerticle {
 
     private Set<String> registeredRoutes = new HashSet<>();
 
-    private String host;
-    private Integer port;
+    private Pool pool;
+    private String httpHost;
+    private Integer httpPort;
 
-    public String getHost(){
-        return this.host;
+    public Pool getPool(){
+        return this.pool;
     }
-    public Integer getPost(){
-        return this.port;
+    public String getHttpHost(){
+        return this.httpHost;
+    }
+    public Integer getHttpPost(){
+        return this.httpPort;
     }
     
     @Override
@@ -52,24 +61,37 @@ public class DmsVertxVerticle extends AbstractVerticle {
         DmsVertxLauncher.getConfig(ar -> {
             if( ar.succeeded() ){
                 JsonObject config = ar.result();
-                String host = config.getString("http.host", "localhost");
-                Integer port = config.getInteger("http.port", 8080);
+                String httpHost = config.getString("http.host", "localhost");
+                Integer httpPort = config.getInteger("http.port", 8080);
                 
-                this.host = host;
-                this.port = port;
+                this.httpHost = httpHost;
+                this.httpPort = httpPort;
 
                 try {
-                    vertx.createHttpServer()
-                        .requestHandler(createRouter(config))
-                        .listen(port, host, http -> {
-                            if (http.succeeded()) {
-                                log.info("HTTP 서버가 시작되었습니다: http://"+host+":"+port);
-                                startPromise.complete();
-                            } else {
-                                log.error(http.cause().getMessage(), http.cause());
-                                startPromise.fail(http.cause());
-                            }
-                        });
+                    // DB 연결
+                    createConnectionPool(config).future().compose(pool -> {
+                        this.pool = pool;
+                        // Router 생성
+                        return createRouter(config).future();
+                    })
+                    .onComplete(ar2 -> {
+                        if( ar2.succeeded() ){
+                            Router router = ar2.result();
+                            vertx.createHttpServer()
+                            .requestHandler(router)
+                            .listen(httpPort, httpHost, http -> {
+                                if (http.succeeded()) {
+                                    log.info("HTTP 서버가 시작되었습니다: http://"+httpHost+":"+httpPort);
+                                    startPromise.complete();
+                                } else {
+                                    startPromise.fail(http.cause());
+                                }
+                            });
+                        } else {
+                            startPromise.fail(ar2.cause());
+                        }
+                    });
+
                 } catch ( Exception e ){
                     startPromise.fail(e);
                 }
@@ -79,26 +101,70 @@ public class DmsVertxVerticle extends AbstractVerticle {
         });
     }
 
+    /**
+     * DB Connection Pool 생성
+     */
+    private Promise<Pool> createConnectionPool(JsonObject config) throws Exception {
+        Promise<Pool> poolPromise = Promise.promise();
+
+        JsonObject databaseConfig = config.getJsonObject("database", new JsonObject());
+
+        PgConnectOptions connectOptions = new PgConnectOptions()
+            .setPort(databaseConfig.getInteger("port", 5432))
+            .setHost(databaseConfig.getString("host", "localhost"))
+            .setDatabase(databaseConfig.getString("database", "postgres"))
+            .setUser(databaseConfig.getString("username", "postgres"))
+            .setPassword(databaseConfig.getString("password", "postgres"));
+
+        PoolOptions poolOptions = new PoolOptions()
+            .setMaxSize(databaseConfig.getInteger("pool-size", 5));
+
+        Pool pool = PgBuilder.pool()
+            .with(poolOptions)
+            .connectingTo(connectOptions)
+            .using(vertx)
+            .build();
+
+        log.debug("connectOptions: {}", connectOptions.toJson().encodePrettily());
+        log.debug("poolOptions: {}", poolOptions.toJson().encodePrettily());
+
+        pool.getConnection().compose(conn -> {
+            return conn.query("SELECT 1")
+                .execute()
+                .compose(res -> {
+                    log.info("Connection pool is successfully connected.");
+                    conn.close();
+                    return Future.succeededFuture();
+                });
+        }).onComplete(ar -> {
+            if( ar.succeeded() ){
+                poolPromise.complete(pool);
+            } else {
+                poolPromise.fail(ar.cause());
+            }
+        });
+
+        return poolPromise;
+    }
     
     /**
      * 라우터 생성
-     * @return
      */
-    private Router createRouter(JsonObject config) throws Exception{
-        Router router = Router.router(vertx);
-        router.route().handler(BodyHandler.create());
+    private Promise<Router> createRouter(JsonObject config) {
+        Promise<Router> routerPromise = Promise.promise();
+        try {
+            Router router = Router.router(vertx);
+    
+            router.route().handler(BodyHandler.create());
+    
+            setDynamicRoutes(router, config);
 
-        setDynamicRoutes(router, config);
-
-        return router;
+            routerPromise.complete(router);
+        } catch ( Exception e ){
+            routerPromise.fail(e);
+        }
+        return routerPromise;
     }
-
-    // Reflection을 사용하여 어노테이션이 적용된 클래스를 가져오는 메소드
-    private Set<Class<?>> getClassesWithAnnotation(JsonObject config) throws Exception {
-        Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps"));
-        return reflections.getTypesAnnotatedWith(DmsVertxController.class);
-    }
-
   
     /**
      * DmsAbstractVerticle이 적용된 클래스에서
@@ -107,38 +173,49 @@ public class DmsVertxVerticle extends AbstractVerticle {
      * @param router
      */
     private void setDynamicRoutes(Router router, JsonObject config) throws Exception {
+        Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps"));
+        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(DmsVertxController.class);
+
         // 어노테이션을 적용받은 클래스들을 찾아 라우팅 설정
-        for (Class<?> cls : getClassesWithAnnotation(config)) {
+        for (Class<?> cls : classes) {
             if (cls.isAnnotationPresent(DmsVertxController.class)) {
                 DmsVertxController annotation = cls.getAnnotation(DmsVertxController.class);
                 final String path = annotation.value();
 
+                // Verticle 배포
                 DeploymentOptions options = new DeploymentOptions().setConfig(config);
                 DmsAbstractVerticle verticleInstance = (DmsAbstractVerticle) cls.getDeclaredConstructor().newInstance();
+
+                verticleInstance.setPool(this.pool);
                 vertx.deployVerticle(verticleInstance, options);
 
                 for (Method method : cls.getDeclaredMethods()) {
                     if (method.isAnnotationPresent(DmsVertxMapping.class)) {
+                        // Method Annotation 처리
                         DmsVertxMapping mappingAnnotation = method.getAnnotation(DmsVertxMapping.class);
+                        
+                        // 중복된 Route가 존재하는지 체크
                         String fullPath = path + mappingAnnotation.value();
-
                         if (registeredRoutes.contains(fullPath)) {
                             throw new IllegalArgumentException("중복 경로가 발견되었습니다: " + fullPath);
                         } else {
                             registeredRoutes.add(fullPath);
                         }
-
+                        
+                        // Annotation에 작성된 Methods 목록 가져오기
                         String[] mappingMethods = mappingAnnotation.methods();
                         if( mappingMethods == null || mappingMethods.length == 0 ){
                             mappingMethods = DEFAULT_METHODS;
                         }
-
                         Set<HttpMethod> httpMethods = (Set<HttpMethod>) Arrays.stream(mappingMethods)
                             .map(httpMethod -> { 
                                 return new HttpMethod(httpMethod);
                             }).collect(Collectors.toSet());
 
-                        log.info("Route: http://{}:{}{}, Allow: {}", this.host, this.port, fullPath, httpMethods);
+                        // 등록된 경로 로그 출력
+                        log.info("Route: http://{}:{}{}, Allow: {}", this.httpHost, this.httpPort, fullPath, httpMethods);
+
+                        // Vertx Route 생성
                         for(HttpMethod httpMethod : httpMethods){
                             Route route = router.route(fullPath);
                             route.method(httpMethod);

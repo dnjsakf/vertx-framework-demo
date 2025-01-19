@@ -15,24 +15,24 @@
 	<!-- Proejct Global Properties -->
   <properties>
 		<project.version>1.0.0</project.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>17</java.version>
 		<vertx.version>4.5.11</vertx.version>
-		<postgres.version>42.7.4</postgres.version>
+		<postgres.version>42.7.5</postgres.version>
   </properties>
 
 	<!-- Netty 의존성 충돌 날 경우 제거 -->
 	<dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-dependencies</artifactId>
-        <version>${vertx.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.vertx</groupId>
+				<artifactId>vertx-dependencies</artifactId>
+				<version>${vertx.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
   <dependencies>
 		<!-- Vert.x Dependencies -->
@@ -91,6 +91,17 @@
 			<artifactId>postgresql</artifactId>
 			<version>${postgres.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.ongres.scram</groupId>
+			<artifactId>client</artifactId>
+			<version>2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ongres.scram</groupId>
+			<artifactId>common</artifactId>
+			<version>2.1</version>
+		</dependency>
+
 
 		<!-- Reflections Dependencies -->
 		<dependency>
