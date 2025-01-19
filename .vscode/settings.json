@@ -29,5 +29,8 @@
       "debug": false
     }
   ],
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.project.sourcePaths": [
+    "dms-framework/vertx-user-api"
+  ]
 }

@@ -6,6 +6,34 @@
     "configurations": [
       {
         "type": "java",
+        "name": "Application",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-admin-api"
+      },
+      {
+        "type": "java",
+        "name": "Application",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-rest-api"
+      },
+      {
+        "type": "java",
+        "name": "Application",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-user-api"
+      },
+      {
+        "type": "java",
+        "name": "UserApiVerticle",
+        "request": "launch",
+        "mainClass": "com.dms.apps.user.UserApiVerticle",
+        "projectName": "vertx-user-api"
+      },
+      {
+        "type": "java",
         "name": "RestApiVerticle2",
         "request": "launch",
         "mainClass": "com.dms.apps.rest.RestApiVerticle2",
@@ -36,21 +64,21 @@
         "type": "java",
         "name": "DmsVertxLauncher",
         "request": "launch",
-        "mainClass": "com.dms.apps.vertx.common.DmsVertxLauncher",
+        "mainClass": "com.dms.apps.vertx.core.DmsVertxLauncher",
         "projectName": "vertx-common"
       },
       {
         "type": "java",
         "name": "CommonVerticle",
         "request": "launch",
-        "mainClass": "com.dms.apps.vertx.CommonVerticle",
+        "mainClass": "com.dms.apps.vertx.coreVerticle",
         "projectName": "vertx-common"
       },
       {
         "type": "java",
         "name": "MainApplication",
         "request": "launch",
-        "mainClass": "com.dms.apps.vertx.common.MainApplication",
+        "mainClass": "com.dms.apps.vertx.core.MainApplication",
         "projectName": "vertx-common"
       },
       {

@@ -76,6 +76,11 @@
 			<artifactId>vertx-pg-client</artifactId>
 			<version>${vertx.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-redis-client</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
 
 		<!-- Lombok Dependencies -->
 		<dependency>
@@ -101,7 +106,6 @@
 			<artifactId>common</artifactId>
 			<version>2.1</version>
 		</dependency>
-
 
 		<!-- Reflections Dependencies -->
 		<dependency>
@@ -157,8 +161,10 @@
   </build>
 
 	<modules>
-		<module>vertx-common</module>
-    <module>vertx-rest-api</module>
+		<module>vertx-core</module>
+    	<module>vertx-user-api</module>
+    	<module>vertx-admin-api</module>
+    	<module>vertx-rest-api</module>
 	</modules>
 
 </project>

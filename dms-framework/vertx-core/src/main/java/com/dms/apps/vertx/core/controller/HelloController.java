@@ -1,4 +1,4 @@
-package com.dms.apps.rest;
+package com.dms.apps.vertx.core.controller;
 
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
 import com.dms.apps.vertx.core.annotations.DmsVertxController;
@@ -7,12 +7,16 @@ import com.dms.apps.vertx.core.annotations.DmsVertxMapping;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.SqlConnection;
+import lombok.extern.slf4j.Slf4j;
 
-@DmsVertxController("/common")
-public class RestApiVerticle2 extends DmsAbstractVerticle {
+@Slf4j
+@DmsVertxController("/")
+public class HelloController extends DmsAbstractVerticle {
 
-    @DmsVertxMapping("/test2")
-    public void getTest(RoutingContext ctx){
+    @DmsVertxMapping(value = "hello")
+    public void handle(RoutingContext ctx){
+        log.info("config: {}", config());
+
         pool().getConnection(ar -> {
             if( ar.succeeded() ){
                 SqlConnection conn = ar.result();
@@ -36,4 +40,5 @@ public class RestApiVerticle2 extends DmsAbstractVerticle {
             }
         });
     }
+
 }

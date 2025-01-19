@@ -10,7 +10,7 @@
     </parent>
 
     <groupId>com.dms.apps</groupId>
-    <artifactId>vertx-rest-api</artifactId>
+    <artifactId>vertx-admin-api</artifactId>
 
     <properties>
     </properties>
@@ -19,16 +19,6 @@
         <dependency>
             <groupId>com.dms.apps</groupId>
             <artifactId>vertx-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.dms.apps</groupId>
-            <artifactId>vertx-admin-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.dms.apps</groupId>
-            <artifactId>vertx-user-api</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

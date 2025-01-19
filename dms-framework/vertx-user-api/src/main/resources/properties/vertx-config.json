@@ -1,0 +1,5 @@
+{
+  "http.host": "localhost",
+  "http.port": 8082,
+  "service.class": "com.dms.apps.user"
+}
