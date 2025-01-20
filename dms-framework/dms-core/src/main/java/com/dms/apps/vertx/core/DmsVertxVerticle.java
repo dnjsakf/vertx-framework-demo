@@ -1,5 +1,6 @@
 package com.dms.apps.vertx.core;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -9,8 +10,11 @@ import java.util.stream.Collectors;
 import org.reflections.Reflections;
 
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
-import com.dms.apps.vertx.core.annotations.DmsVertxController;
-import com.dms.apps.vertx.core.annotations.DmsVertxMapping;
+import com.dms.apps.vertx.core.annotations.DmsController;
+import com.dms.apps.vertx.core.annotations.DmsInject;
+import com.dms.apps.vertx.core.annotations.DmsRequestMapping;
+import com.dms.apps.vertx.core.utils.DmsDBClient;
+import com.dms.apps.vertx.core.utils.DmsRedisClient;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
@@ -22,15 +26,6 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
-import io.vertx.pgclient.PgBuilder;
-import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.redis.client.Command;
-import io.vertx.redis.client.Redis;
-import io.vertx.redis.client.RedisConnection;
-import io.vertx.redis.client.RedisOptions;
-import io.vertx.redis.client.Request;
-import io.vertx.sqlclient.Pool;
-import io.vertx.sqlclient.PoolOptions;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -46,19 +41,11 @@ public class DmsVertxVerticle extends AbstractVerticle {
 
     private Set<String> registeredRoutes = new HashSet<>();
 
-    private Pool pool;
     private String httpHost;
     private Integer httpPort;
 
-    public Pool getPool(){
-        return this.pool;
-    }
-    public String getHttpHost(){
-        return this.httpHost;
-    }
-    public Integer getHttpPost(){
-        return this.httpPort;
-    }
+    private DmsDBClient dmsDBClient;
+    private DmsRedisClient dmsRedisClient;
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
@@ -75,13 +62,22 @@ public class DmsVertxVerticle extends AbstractVerticle {
                 try {
                     Future.succeededFuture().compose(res -> {
                         // DB 연결
-                        return createConnectionPool(config).compose(pool -> {
+                        return createDBClient(config).compose(dmsDBClient -> {
                             log.info("Created Connection Pool");
-                            this.pool = pool;
+                            // this.pool = pool;
+                            this.dmsDBClient = dmsDBClient;
                             return Future.succeededFuture();
                         });
                     })
-                    .compose(res ->{
+                    .compose(res -> {
+                        // REDIS 연결
+                        return createRedisClient(config).compose(dmsRedisClient -> {
+                            log.info("Created Redis Client");
+                            this.dmsRedisClient = dmsRedisClient;
+                            return Future.succeededFuture();
+                        });
+                    })
+                    .compose(res -> {
                         // Router 생성
                         return createRouter(config).compose(router -> {
                             log.info("Created Router");
@@ -110,12 +106,6 @@ public class DmsVertxVerticle extends AbstractVerticle {
                             startPromise.fail(ar2.cause());
                         }
                     });
-                    // .onSuccess(res -> {
-                    //     startPromise.complete();
-                    // })
-                    // .onFailure(t -> {
-                    //     startPromise.fail(t);
-                    // });
 
                 } catch ( Exception e ){
                     startPromise.fail(e);
@@ -129,84 +119,46 @@ public class DmsVertxVerticle extends AbstractVerticle {
     /**
      * DB Connection Pool 생성
      */
-    private Future<Pool> createConnectionPool(JsonObject config) {
-        Promise<Pool> poolPromise = Promise.promise();
+    private Future<DmsDBClient> createDBClient(JsonObject config) {
+        Promise<DmsDBClient> dbPromise = Promise.promise();
 
-        JsonObject databaseConfig = config.getJsonObject("database", new JsonObject());
+        try {
+            JsonObject databaseConfig = config.getJsonObject("database", new JsonObject());
+            DmsDBClient dbClient = new DmsDBClient(vertx, databaseConfig);
+            dbClient.connect().onComplete(ar -> {
+                if( ar.succeeded() ){
+                    dbPromise.complete(dbClient);
+                } else {
+                    dbPromise.fail(ar.cause());
+                }
+            });
 
-        PgConnectOptions connectOptions = new PgConnectOptions()
-            .setPort(databaseConfig.getInteger("port", 5432))
-            .setHost(databaseConfig.getString("host", "localhost"))
-            .setDatabase(databaseConfig.getString("database", "postgres"))
-            .setUser(databaseConfig.getString("username", "postgres"))
-            .setPassword(databaseConfig.getString("password", "postgres"));
+        } catch ( NullPointerException e ){
+            dbPromise.fail(e);
+        }
 
-        PoolOptions poolOptions = new PoolOptions()
-            .setMaxSize(databaseConfig.getInteger("pool-size", 5));
-
-        Pool pool = PgBuilder.pool()
-            .with(poolOptions)
-            .connectingTo(connectOptions)
-            .using(vertx)
-            .build();
-
-        log.debug("connectOptions: {}", connectOptions.toJson().encodePrettily());
-        log.debug("poolOptions: {}", poolOptions.toJson().encodePrettily());
-
-        pool.getConnection().compose(conn -> {
-            return conn.query("SELECT 1")
-                .execute()
-                .compose(res -> {
-                    log.info("Connection pool is successfully connected.");
-                    conn.close();
-                    return Future.succeededFuture();
-                });
-        }).onComplete(ar -> {
-            if( ar.succeeded() ){
-                poolPromise.complete(pool);
-            } else {
-                poolPromise.fail(ar.cause());
-            }
-        });
-
-        return poolPromise.future();
+        return dbPromise.future();
     }
 
-    private Future<Void> createRedisClient(JsonObject config){
-        Promise<Void> promise = Promise.promise();
-        RedisOptions redisOptions = new RedisOptions()
-            .setConnectionString("redis://localhost:6379")
-            // allow at max 8 connections to redis
-            .setMaxPoolSize(8)
-            // allow 32 connection requests to queue waiting
-            // for a connection to be available.
-            .setMaxWaitingHandlers(32);
+    private Future<DmsRedisClient> createRedisClient(JsonObject config){
+        Promise<DmsRedisClient> redisPromise = Promise.promise();
 
-        Redis client = Redis.createClient(vertx, redisOptions);
-
-        client.connect(onConnect -> {
-        if (onConnect.succeeded()) {
-            RedisConnection connection = onConnect.result();
-            connection.send(Request.cmd(Command.SET).arg("key").arg("value"), onSet -> {
-            if (onSet.succeeded()) {
-                System.out.println("Key set successfully");
-                connection.send(Request.cmd(Command.GET).arg("key"), onGet -> {
-                if (onGet.succeeded()) {
-                    System.out.println("Value: " + onGet.result().toString());
+        try {
+            JsonObject redisConfig = config.getJsonObject("redis", new JsonObject());
+            DmsRedisClient redisClient = new DmsRedisClient(vertx, redisConfig);
+            redisClient.connect().onComplete(ar -> {
+                if( ar.succeeded() ){
+                    redisPromise.complete(redisClient);
                 } else {
-                    System.out.println("Failed to get key: " + onGet.cause().getMessage());
+                    redisPromise.fail(ar.cause());
                 }
-                });
-            } else {
-                System.out.println("Failed to set key: " + onSet.cause().getMessage());
-            }
             });
-        } else {
-            System.out.println("Failed to connect to Redis: " + onConnect.cause().getMessage());
-        }
-        });
 
-        return promise.future();
+        } catch ( NullPointerException e ){
+            redisPromise.fail(e);
+        }
+
+        return redisPromise.future();
     }
     
     /**
@@ -236,25 +188,43 @@ public class DmsVertxVerticle extends AbstractVerticle {
      */
     private void setDynamicRoutes(Router router, JsonObject config) throws Exception {
         Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps.vertx"));
-        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(DmsVertxController.class);
+        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(DmsController.class);
 
         // 어노테이션을 적용받은 클래스들을 찾아 라우팅 설정
         for (Class<?> cls : classes) {
-            if (cls.isAnnotationPresent(DmsVertxController.class)) {
-                DmsVertxController annotation = cls.getAnnotation(DmsVertxController.class);
+            // Verticle 배포
+            DeploymentOptions options = new DeploymentOptions().setConfig(config);
+            DmsAbstractVerticle verticleInstance = (DmsAbstractVerticle) cls.getDeclaredConstructor().newInstance();
+            vertx.deployVerticle(verticleInstance, options);
+
+            // Field Annotation
+            for (Field field : cls.getDeclaredFields()) {
+                if (field.isAnnotationPresent(DmsInject.class)) {
+                    field.setAccessible(true); // private
+
+                    Class<?> fieldClass = field.getType();
+                    try {
+                        if( fieldClass.equals(DmsDBClient.class) ){
+                            field.set(verticleInstance, this.dmsDBClient);
+                        } else if ( fieldClass.equals(DmsRedisClient.class) ){
+                            field.set(verticleInstance, this.dmsRedisClient);
+                        }
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            // Class Annotation
+            if (cls.isAnnotationPresent(DmsController.class)) {
+                DmsController annotation = cls.getAnnotation(DmsController.class);
                 final String path = annotation.value();
 
-                // Verticle 배포
-                DeploymentOptions options = new DeploymentOptions().setConfig(config);
-                DmsAbstractVerticle verticleInstance = (DmsAbstractVerticle) cls.getDeclaredConstructor().newInstance();
-
-                verticleInstance.setPool(this.pool);
-                vertx.deployVerticle(verticleInstance, options);
-
+                // Method Annotation
                 for (Method method : cls.getDeclaredMethods()) {
-                    if (method.isAnnotationPresent(DmsVertxMapping.class)) {
+                    if (method.isAnnotationPresent(DmsRequestMapping.class)) {
                         // Method Annotation 처리
-                        DmsVertxMapping mappingAnnotation = method.getAnnotation(DmsVertxMapping.class);
+                        DmsRequestMapping mappingAnnotation = method.getAnnotation(DmsRequestMapping.class);
                         
                         // 중복된 Route가 존재하는지 체크
                         String fullPath = path + mappingAnnotation.value();

@@ -1,0 +1,21 @@
+{
+  "service.class": "com.dms.apps",
+  "http.host": "localhost",
+  "http.port": 8080,
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "dochi",
+    "user": "dochi",
+    "password": "dochi123",
+    "maxSize": 5,
+    "connectionTimeout": 60
+  },
+  "redis": {
+    "connectionString": "redis://localhost:6379",
+    "password": null,
+    "maxPoolSize": 10,
+    "maxPoolWaiting": 30,
+    "maxWaitingHandlers": 32
+  }
+}

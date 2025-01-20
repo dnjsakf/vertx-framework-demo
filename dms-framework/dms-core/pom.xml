@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>com.dms.apps</groupId>
-    <artifactId>vertx-core</artifactId>
+    <artifactId>dms-core</artifactId>
 
     <properties>
     </properties>

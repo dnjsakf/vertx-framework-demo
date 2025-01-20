@@ -7,6 +7,6 @@ import java.lang.annotation.RetentionPolicy;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface DmsVertxController {
+public @interface DmsController {
     String value();
 }

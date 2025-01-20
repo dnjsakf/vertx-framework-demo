@@ -1,22 +1,27 @@
 package com.dms.apps.rest;
 
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
-import com.dms.apps.vertx.core.annotations.DmsVertxController;
-import com.dms.apps.vertx.core.annotations.DmsVertxMapping;
+import com.dms.apps.vertx.core.annotations.DmsInject;
+import com.dms.apps.vertx.core.annotations.DmsController;
+import com.dms.apps.vertx.core.annotations.DmsRequestMapping;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlConnection;
 
-@DmsVertxController("/common")
+@DmsController("/common")
 public class RestApiVerticle2 extends DmsAbstractVerticle {
 
-    @DmsVertxMapping("/test2")
+    @DmsInject
+    private Pool pool;
+
+    @DmsRequestMapping("/test2")
     public void getTest(RoutingContext ctx){
-        pool().getConnection(ar -> {
+        pool.getConnection(ar -> {
             if( ar.succeeded() ){
                 SqlConnection conn = ar.result();
-                conn.query("select * from DMS_COMM_USER")
+                conn.query("select 1")
                     .execute()
                     .onComplete(ar2 -> {
                         if( ar2.succeeded() ){

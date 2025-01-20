@@ -3,16 +3,16 @@
   "java.configuration.runtimes": [
     {
         "name": "JavaSE-17",
-        "path": "C:\\dev\\01.lang\\java\\java-17-openjdk",
+        "path": "C:\\dev\\java\\openjdk-17.0.3.0.6",
         "default":  true
     }
   ],
-  "java.jdt.ls.java.home": "C:\\dev\\01.lang\\java\\java-17-openjdk",
+  "java.jdt.ls.java.home": "C:\\dev\\java\\openjdk-17.0.3.0.6",
   "maven.executable.options": "--settings ./.vscode/settings.xml",
   "maven.terminal.customEnv": [
     {
       "environmentVariable": "JAVA_HOME",
-      "value": "C:\\dev\\01.lang\\java\\java-17-openjdk"
+      "value": "C:\\dev\\java\\openjdk-17.0.3.0.6"
     },
     {
       "environmentVariable": "MAVEN_OPTS",

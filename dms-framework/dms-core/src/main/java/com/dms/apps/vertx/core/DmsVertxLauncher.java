@@ -62,6 +62,7 @@ public class DmsVertxLauncher extends Launcher {
             options.setEventLoopPoolSize(eventLoopPoolSize);
             options.setWorkerPoolSize(workerPoolSize);
             options.setInternalBlockingPoolSize(internalBlockingPoolSize);
+
         } else {
             log.error(ar.cause().getMessage(), ar.cause());
         }
@@ -71,6 +72,15 @@ public class DmsVertxLauncher extends Launcher {
     @Override
     public void afterStartingVertx(Vertx vertx) {
         log.info("2. afterStartingVertx");
+
+        getConfig(ar -> {
+            if( ar.succeeded() ){
+                JsonObject config = ar.result();
+                DeploymentOptions eventBusOptions = new DeploymentOptions();
+                eventBusOptions.setConfig(config.getJsonObject("redis", new JsonObject()));
+                vertx.deployVerticle(DmsVertxEventBus.class, eventBusOptions);
+            }
+        });
     }
 
     @Override

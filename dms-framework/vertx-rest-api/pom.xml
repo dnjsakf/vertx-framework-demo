@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>com.dms.apps</groupId>
-            <artifactId>vertx-core</artifactId>
+            <artifactId>dms-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
