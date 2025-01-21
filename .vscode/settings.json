@@ -25,11 +25,12 @@
   ],
   "maven.terminal.favorites": [
     {
-      "command": "vertx:run",
+      "alias": "admin-api",
+      "command": "compile exec:java -Dexec.mainClass=com.dms.apps.Application",
       "debug": false
     }
   ],
-  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.configuration.updateBuildConfiguration": "automatic",
   "java.project.sourcePaths": [
     "dms-framework/vertx-user-api"
   ]

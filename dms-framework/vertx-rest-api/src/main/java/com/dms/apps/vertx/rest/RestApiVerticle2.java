@@ -1,4 +1,4 @@
-package com.dms.apps.rest;
+package com.dms.apps.vertx.rest;
 
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
 import com.dms.apps.vertx.core.annotations.DmsInject;

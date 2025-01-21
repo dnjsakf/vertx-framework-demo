@@ -50,70 +50,66 @@ public class DmsVertxVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
 
-        DmsVertxLauncher.getConfig(ar -> {
-            if( ar.succeeded() ){
-                JsonObject config = ar.result();
-                String httpHost = config.getString("http.host", "localhost");
-                Integer httpPort = config.getInteger("http.port", 8080);
-                
-                this.httpHost = httpHost;
-                this.httpPort = httpPort;
+        JsonObject config = config();
 
-                try {
-                    Future.succeededFuture().compose(res -> {
-                        // DB 연결
-                        return createDBClient(config).compose(dmsDBClient -> {
-                            log.info("Created Connection Pool");
-                            // this.pool = pool;
-                            this.dmsDBClient = dmsDBClient;
-                            return Future.succeededFuture();
-                        });
-                    })
-                    .compose(res -> {
-                        // REDIS 연결
-                        return createRedisClient(config).compose(dmsRedisClient -> {
-                            log.info("Created Redis Client");
-                            this.dmsRedisClient = dmsRedisClient;
-                            return Future.succeededFuture();
-                        });
-                    })
-                    .compose(res -> {
-                        // Router 생성
-                        return createRouter(config).compose(router -> {
-                            log.info("Created Router");
-                            return Future.succeededFuture(router);
-                        });
-                    })
-                    .compose(router -> {
-                        // 서버 실행
-                        Promise<Void> promise = Promise.promise();
-                        vertx.createHttpServer()
-                            .requestHandler(router)
-                            .listen(httpPort, httpHost, http -> {
-                                if (http.succeeded()) {
-                                    log.info("Started HTTP Server: http://"+httpHost+":"+httpPort);
-                                    promise.complete();
-                                } else {
-                                    promise.fail(http.cause());
-                                }
-                            });
-                        return promise.future();
-                    })
-                    .onComplete(ar2 -> {
-                        if( ar2.succeeded() ){
-                            startPromise.complete();
+        JsonObject httpConfig = config.getJsonObject("http", new JsonObject());
+        String httpHost = httpConfig.getString("host", "localhost");
+        Integer httpPort = httpConfig.getInteger("port", 8080);
+        
+        this.httpHost = httpHost;
+        this.httpPort = httpPort;
+
+        try {
+            Future.succeededFuture().compose(res -> {
+                // DB 연결
+                return createDBClient(config).compose(dmsDBClient -> {
+                    log.info("Created Connection Pool");
+                    // this.pool = pool;
+                    this.dmsDBClient = dmsDBClient;
+                    return Future.succeededFuture();
+                });
+            })
+            .compose(res -> {
+                // REDIS 연결
+                return createRedisClient(config).compose(dmsRedisClient -> {
+                    log.info("Created Redis Client");
+                    this.dmsRedisClient = dmsRedisClient;
+                    return Future.succeededFuture();
+                });
+            })
+            .compose(res -> {
+                // Router 생성
+                return createRouter(config).compose(router -> {
+                    log.info("Created Router");
+                    return Future.succeededFuture(router);
+                });
+            })
+            .compose(router -> {
+                // 서버 실행
+                Promise<Void> promise = Promise.promise();
+                vertx.createHttpServer()
+                    .requestHandler(router)
+                    .listen(httpPort, httpHost, http -> {
+                        if (http.succeeded()) {
+                            log.info("Started HTTP Server: http://"+httpHost+":"+httpPort);
+                            promise.complete();
                         } else {
-                            startPromise.fail(ar2.cause());
+                            promise.fail(http.cause());
                         }
                     });
-
-                } catch ( Exception e ){
-                    startPromise.fail(e);
+                return promise.future();
+            })
+            .onComplete(ar2 -> {
+                if( ar2.succeeded() ){
+                    startPromise.complete();
+                } else {
+                    startPromise.fail(ar2.cause());
                 }
-            } else {
-                startPromise.fail(ar.cause());
-            }
-        });
+            });
+
+        } catch ( Exception e ){
+            startPromise.fail(e);
+        }
     }
 
     /**

@@ -32,6 +32,17 @@ public class SampleController extends DmsAbstractVerticle {
         ctx.response().end("Hello, Vertx!!!");
     }
 
+    @DmsRequestMapping(value = "/eventbus", methods = { "GET" })
+    public void getEventBus(RoutingContext ctx){
+        vertx.eventBus().request("eventbus.ping", "Sample", ar -> {
+            if( ar.succeeded() ){
+                ctx.response().end(ar.result().body().toString());
+            } else {
+                ctx.fail(ar.cause());
+            }
+        });
+    }
+
     @DmsRequestMapping("/ping")
     public void getPing(RoutingContext ctx){
         redisClient.ping().onComplete(ar2 -> {

@@ -1,4 +1,4 @@
-package com.dms.apps.admin;
+package com.dms.apps.vertx.admin;
 
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
 import com.dms.apps.vertx.core.annotations.DmsController;
@@ -8,7 +8,9 @@ import com.dms.apps.vertx.core.utils.DmsDBClient;
 import com.dms.apps.vertx.core.utils.DmsRedisClient;
 
 import io.vertx.ext.web.RoutingContext;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @DmsController("/admin")
 public class AdminApiVerticle extends DmsAbstractVerticle {
 
@@ -17,6 +19,15 @@ public class AdminApiVerticle extends DmsAbstractVerticle {
 
     @DmsInject
     private DmsRedisClient redisClient;
+
+    @Override
+    public void start() throws Exception {
+        // EventBus 사용
+        vertx.eventBus().consumer("eventbus.admin", message -> {
+            log.info("Received message: " + message.body());
+            message.reply("pong");
+        });
+    }
 
     @DmsRequestMapping(value = "/config", methods = { "GET" })
     public void getConfig(RoutingContext ctx){
@@ -54,5 +65,37 @@ public class AdminApiVerticle extends DmsAbstractVerticle {
             .end(config().toString());
     }
     
+    @DmsRequestMapping("/eventbus/ping")
+    public void getEventBusPing(RoutingContext ctx){
+        vertx.eventBus().request("eventbus.ping", "I'm Admin")
+            .onSuccess(message -> {
+                ctx.response().end(message.body().toString());
+            })
+            .onFailure(t -> {
+                ctx.fail(t);
+            });
+    }
+
+    @DmsRequestMapping("/eventbus/user")
+    public void getEventBusUser(RoutingContext ctx){
+        vertx.eventBus().request("eventbus.user", "I'm Admin")
+            .onSuccess(message -> {
+                ctx.response().end(message.body().toString());
+            })
+            .onFailure(t -> {
+                ctx.fail(t);
+            });
+    }
+
+    @DmsRequestMapping("/eventbus")
+    public void getEventBus(RoutingContext ctx){
+        vertx.eventBus().request("eventbus.user", "I'm Admin")
+            .onSuccess(message -> {
+                ctx.response().end(message.body().toString());
+            })
+            .onFailure(t -> {
+                ctx.fail(t);
+            });
+    }
     
 }

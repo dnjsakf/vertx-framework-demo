@@ -1,5 +1,10 @@
 {
-  "http.host": "localhost",
-  "http.port": 8082,
-  "service.class": "com.dms.apps.user"
+  "service.class": "com.dms.apps.vertx.admin",
+  "http": {
+    "host": "localhost",
+    "port": 8081
+  },
+  "hazelcast": {
+    "network.port": 5701
+  }
 }

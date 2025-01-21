@@ -1,7 +1,9 @@
 {
-  "service.class": "com.dms.apps",
-  "http.host": "localhost",
-  "http.port": 8080,
+  "service.class": "com.dms.apps.vertx",
+  "http": {
+    "host": "localhost",
+    "port": 8080
+  },
   "database": {
     "host": "localhost",
     "port": 5432,
@@ -10,6 +12,10 @@
     "password": "dochi123",
     "maxSize": 5,
     "connectionTimeout": 60
+  },
+  "hazelcast": {
+    "network.port": 5700,
+    "public.address": "10.100.100.23"
   },
   "redis": {
     "connectionString": "redis://localhost:6379",
