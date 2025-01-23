@@ -6,115 +6,47 @@
     "configurations": [
       {
         "type": "java",
+        "name": "DmsVertxClusterStarter",
+        "request": "launch",
+        "mainClass": "com.dms.apps.vertx.core.DmsVertxClusterStarter",
+        "projectName": "dms-core"
+      },
+      {
+        "type": "java",
+        "name": "vertx-admin-api",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-admin-api",
+        "noDebug": false,
+        "__progressId": "41648bc8-620d-4a56-b801-367892151b6c",
+        "__origin": "internal"
+      },
+      {
+        "type": "java",
+        "name": "vertx-user-api",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-user-api",
+        "noDebug": false,
+        "__progressId": "fbee7ea2-3600-4b2a-8edf-de41a6452dd8",
+        "__origin": "internal"
+      },
+      {
+        "type": "java",
+        "name": "vertx-rest-api",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "vertx-rest-api",
+        "noDebug": false,
+        "__progressId": "f07a2faf-fbce-4cbf-bde9-570b68aa965b",
+        "__origin": "internal"
+      },
+      {
+        "type": "java",
         "name": "DmsVertxStarter",
         "request": "launch",
         "mainClass": "com.dms.apps.vertx.core.DmsVertxStarter",
         "projectName": "dms-core"
-      },
-      {
-        "type": "java",
-        "name": "DmsVertxStarter",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.DmsVertxStarter",
-        "projectName": "dms-core"
-      },
-      {
-        "type": "java",
-        "name": "Application",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.Application",
-        "projectName": "dms-core"
-      },
-      {
-        "type": "java",
-        "name": "DmsVertxLauncher",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.core.DmsVertxLauncher",
-        "projectName": "dms-core"
-      },
-      {
-        "type": "java",
-        "name": "DmsVertxLauncher",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.core.DmsVertxLauncher",
-        "projectName": "vertx-core"
-      },
-      {
-        "type": "java",
-        "name": "Application",
-        "request": "launch",
-        "mainClass": "com.dms.apps.Application",
-        "projectName": "vertx-admin-api"
-      },
-      {
-        "type": "java",
-        "name": "Application",
-        "request": "launch",
-        "mainClass": "com.dms.apps.Application",
-        "projectName": "vertx-rest-api"
-      },
-      {
-        "type": "java",
-        "name": "Application",
-        "request": "launch",
-        "mainClass": "com.dms.apps.Application",
-        "projectName": "vertx-user-api"
-      },
-      {
-        "type": "java",
-        "name": "UserApiVerticle",
-        "request": "launch",
-        "mainClass": "com.dms.apps.user.UserApiVerticle",
-        "projectName": "vertx-user-api"
-      },
-      {
-        "type": "java",
-        "name": "RestApiVerticle2",
-        "request": "launch",
-        "mainClass": "com.dms.apps.rest.RestApiVerticle2",
-        "projectName": "vertx-rest-api"
-      },
-      {
-        "type": "java",
-        "name": "Application",
-        "request": "launch",
-        "mainClass": "com.dms.apps.rest.Application",
-        "projectName": "vertx-rest-api"
-      },
-      {
-        "type": "java",
-        "name": "RestApiVerticle",
-        "request": "launch",
-        "mainClass": "com.dms.apps.rest.RestApiVerticle",
-        "projectName": "vertx-rest-api"
-      },
-      {
-        "type": "java",
-        "name": "RestApiVerticle",
-        "request": "launch",
-        "mainClass": "com.dms.apps.RestApiVerticle",
-        "projectName": "vertx-rest-api"
-      },
-      {
-        "type": "java",
-        "name": "DmsVertxLauncher",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.core.DmsVertxLauncher",
-        "projectName": "vertx-common"
-      },
-      {
-        "type": "java",
-        "name": "CommonVerticle",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.coreVerticle",
-        "projectName": "vertx-common"
-      },
-      {
-        "type": "java",
-        "name": "MainApplication",
-        "request": "launch",
-        "mainClass": "com.dms.apps.vertx.core.MainApplication",
-        "projectName": "vertx-common"
       },
       {
         "type": "java",

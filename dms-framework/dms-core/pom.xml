@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.dms.apps</groupId>
         <artifactId>dms-framework</artifactId>
-        <version>${project.version}</version>
+        <version>1.0.0</version>
     </parent>
 
     <groupId>com.dms.apps</groupId>

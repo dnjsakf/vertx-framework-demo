@@ -10,7 +10,7 @@
     <!-- Proejct Information -->
     <groupId>com.dms.apps</groupId>
     <artifactId>dms-framework</artifactId>
-    <version>${project.version}</version>
+    <version>1.0.0</version>
     <name>dms-framework</name>
 
     <!-- Proejct Global Properties -->
@@ -51,6 +51,11 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-circuit-breaker</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-health-check</artifactId>
             <version>${vertx.version}</version>
         </dependency>
         <!-- Vertx Web -->

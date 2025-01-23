@@ -1,4 +1,4 @@
-package com.dms.apps.vertx.core.controller;
+package com.dms.apps.vertx.core.examples;
 
 import java.util.Map;
 

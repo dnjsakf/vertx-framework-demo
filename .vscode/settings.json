@@ -25,8 +25,13 @@
   ],
   "maven.terminal.favorites": [
     {
-      "alias": "admin-api",
-      "command": "compile exec:java -Dexec.mainClass=com.dms.apps.Application",
+      "alias": "vertx-admin-api",
+      "command": "compile exec:java -Dinstance.name=vertx-admin-api -Dexec.mainClass=com.dms.apps.AdminApplication",
+      "debug": false
+    },
+    {
+      "alias": "vertx-user-api",
+      "command": "compile exec:java -Dinstance.name=vertx-user-api -Dexec.mainClass=com.dms.apps.UserApplication",
       "debug": false
     }
   ],

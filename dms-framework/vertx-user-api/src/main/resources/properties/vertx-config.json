@@ -5,6 +5,7 @@
     "port": 8082
   },
   "hazelcast": {
-    "network.port": 5702
+    "network.port": 5702,
+    "public.address": "10.100.100.24"
   }
 }

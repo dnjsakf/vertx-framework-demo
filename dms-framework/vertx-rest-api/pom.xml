@@ -6,7 +6,7 @@
     <parent>
           <groupId>com.dms.apps</groupId>
           <artifactId>dms-framework</artifactId>
-          <version>${project.version}</version>
+          <version>1.0.0</version>
     </parent>
 
     <groupId>com.dms.apps</groupId>
@@ -19,17 +19,17 @@
         <dependency>
             <groupId>com.dms.apps</groupId>
             <artifactId>dms-core</artifactId>
-            <version>${project.version}</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.dms.apps</groupId>
             <artifactId>vertx-admin-api</artifactId>
-            <version>${project.version}</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.dms.apps</groupId>
             <artifactId>vertx-user-api</artifactId>
-            <version>${project.version}</version>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 

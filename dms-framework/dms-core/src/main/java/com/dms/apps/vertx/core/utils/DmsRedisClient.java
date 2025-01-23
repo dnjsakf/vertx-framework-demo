@@ -60,11 +60,20 @@ public class DmsRedisClient {
         return this.redisApi.send(Command.PING);
     }
 
+    public Future<Response> rpush(String key, String data){
+        return this.redisApi.send(Command.RPUSH, key, data);
+    }
+
+    public Future<Response> lpop(String key){
+        return this.redisApi.send(Command.LPOP, key);
+    }
+
     public Future<RedisAPI> connect() {
         return connect(0);
     }
 
     private Future<RedisAPI> connect(int retry) {
+        log.info("connect redis!!!!");
         Promise<RedisAPI> promise = Promise.promise();
 
         if ( this.redis != null ) {
@@ -95,6 +104,36 @@ public class DmsRedisClient {
                 });
             }
         }
+
+        return promise.future();
+    }
+
+    public Future<RedisAPI> createApi() {
+        Promise<RedisAPI> promise = Promise.promise();
+        
+        Redis redis = Redis.createClient(this.vertx, this.redisOptions);
+        redis.connect()
+            .onSuccess(conn -> {
+                promise.complete(RedisAPI.api(redis));
+            })
+            .onFailure(t -> {
+                promise.fail(t);
+            });
+
+        return promise.future();
+    }
+
+    public Future<Redis> create() {
+        Promise<Redis> promise = Promise.promise();
+        
+        Redis redis = Redis.createClient(this.vertx, this.redisOptions);
+        redis.connect()
+            .onSuccess(conn -> {
+                promise.complete(redis);
+            })
+            .onFailure(t -> {
+                promise.fail(t);
+            });
 
         return promise.future();
     }

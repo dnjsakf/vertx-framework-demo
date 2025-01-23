@@ -14,14 +14,18 @@
     "connectionTimeout": 60
   },
   "hazelcast": {
+    "__ref__": "https://docs.hazelcast.com/imdg/latest/system-properties.html",
     "network.port": 5700,
     "public.address": "10.100.100.23"
   },
   "redis": {
     "connectionString": "redis://localhost:6379",
     "password": null,
-    "maxPoolSize": 10,
-    "maxPoolWaiting": 30,
+    "maxPoolSize": 30,
+    "maxPoolWaiting": 100,
+    "maxWaitQueueSize": 100,
+    "idleTimeout": 30000,
+    "connectionTimeout": 10000,
     "maxWaitingHandlers": 32
   }
 }

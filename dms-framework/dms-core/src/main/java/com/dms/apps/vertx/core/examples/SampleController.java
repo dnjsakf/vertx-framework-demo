@@ -1,4 +1,4 @@
-package com.dms.apps.vertx.core.controller;
+package com.dms.apps.vertx.core.examples;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,14 +32,21 @@ public class SampleController extends DmsAbstractVerticle {
         ctx.response().end("Hello, Vertx!!!");
     }
 
-    @DmsRequestMapping(value = "/eventbus", methods = { "GET" })
+    @DmsRequestMapping(value = "/eb/:key", methods = { "GET" })
     public void getEventBus(RoutingContext ctx){
-        vertx.eventBus().request("eventbus.ping", "Sample", ar -> {
-            if( ar.succeeded() ){
-                ctx.response().end(ar.result().body().toString());
-            } else {
-                ctx.fail(ar.cause());
-            }
+        String key = ctx.pathParam("key");
+        String data = ctx.queryParam("data").get(0);
+        // vertx.eventBus().request(key, data, ar -> {
+        //     if( ar.succeeded() ){
+        //         ctx.response().end(ar.result().body().toString());
+        //     } else {
+        //         ctx.fail(ar.cause());
+        //     }
+        // });
+        redisClient.rpush(key, data).onSuccess(resp -> {
+            ctx.response().end(resp.toString());
+        }).onFailure(t -> {
+            ctx.fail(t);
         });
     }
 

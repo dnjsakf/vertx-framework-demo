@@ -17,8 +17,6 @@ public class DmsVertxLauncher extends Launcher {
 
     private static ConfigRetriever retriever;
 
-    private Vertx newVertx;
-
     public static void main(String[] args) {
         new DmsVertxLauncher().start();
     }
@@ -33,7 +31,7 @@ public class DmsVertxLauncher extends Launcher {
     public void beforeStartingVertx(VertxOptions options) {
         log.info("1. beforeStartingVertx");
 
-        newVertx = Vertx.vertx();
+        Vertx tempVertx = Vertx.vertx();
 
         ConfigStoreOptions commonFileStore = new ConfigStoreOptions()
             .setType("file")
@@ -49,23 +47,26 @@ public class DmsVertxLauncher extends Launcher {
             .addStore(commonFileStore)
             .addStore(jsonFileStore);
 
-        retriever = ConfigRetriever.create(newVertx, retrieverOptions);
+        retriever = ConfigRetriever.create(tempVertx, retrieverOptions);
         retriever.getConfig(ar -> {
-            if( ar.succeeded() ){
-                log.info("Options Loaded");
-                JsonObject config = ar.result();
-
-                int eventLoopPoolSize = config.getInteger("eventLoopPoolSize", VertxOptions.DEFAULT_EVENT_LOOP_POOL_SIZE);
-                int workerPoolSize = config.getInteger("workerPoolSize", VertxOptions.DEFAULT_WORKER_POOL_SIZE);
-                int internalBlockingPoolSize = config.getInteger("internalBlockingPoolSize", VertxOptions.DEFAULT_INTERNAL_BLOCKING_POOL_SIZE);
-
-                options.setEventLoopPoolSize(eventLoopPoolSize);
-                options.setWorkerPoolSize(workerPoolSize);
-                options.setInternalBlockingPoolSize(internalBlockingPoolSize);
-
-            } else {
-                log.error(ar.cause().getMessage(), ar.cause());
-            }
+            tempVertx.close()
+                .onSuccess(res -> {
+                    if( ar.succeeded() ){
+                        log.info("Options Loaded");
+                        JsonObject config = ar.result();
+        
+                        int eventLoopPoolSize = config.getInteger("eventLoopPoolSize", VertxOptions.DEFAULT_EVENT_LOOP_POOL_SIZE);
+                        int workerPoolSize = config.getInteger("workerPoolSize", VertxOptions.DEFAULT_WORKER_POOL_SIZE);
+                        int internalBlockingPoolSize = config.getInteger("internalBlockingPoolSize", VertxOptions.DEFAULT_INTERNAL_BLOCKING_POOL_SIZE);
+        
+                        options.setEventLoopPoolSize(eventLoopPoolSize);
+                        options.setWorkerPoolSize(workerPoolSize);
+                        options.setInternalBlockingPoolSize(internalBlockingPoolSize);
+        
+                    } else {
+                        log.error(ar.cause().getMessage(), ar.cause());
+                    }
+                });
         });
     }
 
@@ -91,21 +92,11 @@ public class DmsVertxLauncher extends Launcher {
     @Override
     public void beforeStoppingVertx(Vertx vertx) {
         log.info("4. beforeStoppingVertx");
-        newVertx.close(ar -> {
-        if( ar.succeeded() ){
-            log.info("Bye...");
-        } else {
-            log.error(ar.cause().getMessage(), ar.cause());
-        }
-        });
+        log.info("Bye...");
     }
     
     public static void getConfig(Handler<AsyncResult<JsonObject>> completionHandler){
         retriever.getConfig(completionHandler);
-    }
-
-    public Vertx getVertx(){
-        return newVertx;
     }
 
 }
