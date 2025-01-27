@@ -27,7 +27,7 @@ public class SampleController extends DmsAbstractVerticle {
     @DmsInject
     private DmsRedisClient redisClient;
 
-    @DmsRequestMapping(value = "/", methods = { "GET" })
+    @DmsRequestMapping(value = "/hello", methods = { "GET" })
     public void getIndex(RoutingContext ctx){
         ctx.response().end("Hello, Vertx!!!");
     }

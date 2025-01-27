@@ -5,7 +5,6 @@ import com.dms.apps.vertx.core.utils.DmsRedisClient;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.redis.client.Command;
-import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.Response;
 import lombok.extern.slf4j.Slf4j;
 

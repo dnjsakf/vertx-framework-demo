@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.io/sockjs-client@1.5.0/dist/sockjs.min.js"></script>
+    <script src='https://unpkg.io/@vertx/eventbus-bridge-client.js@1.0.0-1/vertx-eventbus.js'></script>
+</head>
+<body>
+    <div>Hello, Vertx!!!</div>
+    <script>
+        var eb = new EventBus('http://localhost:8080/eventbus');
+        
+        eb.onopen = function() {
+            console.log('open');
+            eb.send('sample.data', "hello");
+        };
+
+        eb.onmessage = function(e) {
+            console.log('message', e.data);
+        };
+
+        eb.onevent = function(event, message) {
+            console.log('event: %o, message:%o', event, message);
+            return true; // in order to signal that the message has been processed
+        };
+
+        eb.onunhandled = function(json) {
+            console.log('this message has no address:', json);
+        };
+
+        eb.onclose = function() {
+            console.log('close');
+        };
+    </script>
+</body>
+</html>

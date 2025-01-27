@@ -9,7 +9,7 @@ import io.vertx.redis.client.Response;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@DmsSubscribe(message = "sample.data", workers = 5)
+@DmsSubscribe(message = "sample.data2", workers = 5)
 public class SampleWorkerReseiver2 extends DmsAbstractWorker {
 
     @Override

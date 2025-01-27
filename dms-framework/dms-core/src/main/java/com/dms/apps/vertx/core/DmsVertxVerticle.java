@@ -1,5 +1,6 @@
 package com.dms.apps.vertx.core;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
 
+import com.dms.apps.vertx.core.abs.DmsAbstractBase;
 import com.dms.apps.vertx.core.abs.DmsAbstractVerticle;
 import com.dms.apps.vertx.core.abs.DmsAbstractWorker;
 import com.dms.apps.vertx.core.annotations.DmsController;
@@ -21,16 +23,23 @@ import com.dms.apps.vertx.core.utils.DmsRedisClient;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.healthchecks.HealthChecks;
 import io.vertx.ext.healthchecks.Status;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
+import io.vertx.ext.web.handler.sockjs.SockJSHandler;
+import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.spi.cluster.hazelcast.ClusterHealthCheck;
 import lombok.extern.slf4j.Slf4j;
 
@@ -106,8 +115,6 @@ public class DmsVertxVerticle extends AbstractVerticle {
                         }
                         log.info("Created Router");
                     });
-                    // PUB/SUB
-                    setSubscribe(config);
                 } catch ( Exception e ){
                     promise.fail(e);
                 }
@@ -177,7 +184,9 @@ public class DmsVertxVerticle extends AbstractVerticle {
     private Future<Router> createRouter(JsonObject config) {
         Promise<Router> routerPromise = Promise.promise();
         try {
-            Router router = Router.router(vertx);
+            Router mainRouter = Router.router(vertx);
+            BodyHandler bodyHandler = BodyHandler.create();
+            StaticHandler staticHandler = StaticHandler.create("webroot");
 
             HealthChecks healthCheck = HealthChecks.create(vertx)
                 .register("status-health", promise -> {
@@ -185,153 +194,212 @@ public class DmsVertxVerticle extends AbstractVerticle {
                 });
             HealthChecks clusterHealthCheck = HealthChecks.create(vertx)
                 .register("cluster-health", ClusterHealthCheck.createProcedure(vertx));
+                
+            registeredRoutes.add("/index");
+            registeredRoutes.add("/health");
+            registeredRoutes.add("/readiness");
+            registeredRoutes.add("/eventbus");
 
-            router.get("/health").handler(HealthCheckHandler.createWithHealthChecks(healthCheck));
-            router.get("/readiness").handler(HealthCheckHandler.createWithHealthChecks(clusterHealthCheck));
+            mainRouter.route().handler(bodyHandler);
+            mainRouter.get("/index").handler(staticHandler);
+            // mainRouter.get("/health").handler(HealthCheckHandler.createWithHealthChecks(healthCheck));
+            // mainRouter.get("/readiness").handler(HealthCheckHandler.createWithHealthChecks(clusterHealthCheck));
 
-            router.route().handler(BodyHandler.create());
-    
-            setDynamicRoutes(router, config);
+            addRoutes(mainRouter, config);
 
-            routerPromise.complete(router);
+            routerPromise.complete(mainRouter);
         } catch ( Exception e ){
             routerPromise.fail(e);
         }
         return routerPromise.future();
     }
   
-    /**
-     * DmsAbstractVerticle이 적용된 클래스에서
-     * DmsVertxMapping 어노테이션이 적용된 메소드를 찾아서
-     * 라우팅 처리
-     * @param router
-     */
-    private void setDynamicRoutes(Router router, JsonObject config) throws Exception {
-        Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps.vertx"));
-        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(DmsController.class);
+    private void addRoutes(Router mainRouter, JsonObject config) throws Exception {
+        // Set<Class<?>> classes = getClassWithAnnotation(DmsController.class, config);
+        Set<Class<? extends DmsAbstractBase>> classes = getClasses(DmsAbstractBase.class, config);
 
+        Router restRouer = Router.router(vertx);
+        Router eventBusRouer = Router.router(vertx);
+        
         // 어노테이션을 적용받은 클래스들을 찾아 라우팅 설정
         for (Class<?> cls : classes) {
-            // Verticle 배포
-            DeploymentOptions options = new DeploymentOptions().setConfig(config);
-            DmsAbstractVerticle verticleInstance = (DmsAbstractVerticle) cls.getDeclaredConstructor().newInstance();
-            vertx.deployVerticle(verticleInstance, options);
-
-            // Field Annotation
-            for (Field field : cls.getDeclaredFields()) {
-                if (field.isAnnotationPresent(DmsInject.class)) {
-                    field.setAccessible(true); // private
-
-                    Class<?> fieldClass = field.getType();
-                    try {
-                        if( fieldClass.equals(DmsDBClient.class) ){
-                            field.set(verticleInstance, this.dmsDBClient);
-                        } else if ( fieldClass.equals(DmsRedisClient.class) ){
-                            field.set(verticleInstance, this.dmsRedisClient);
-                        }
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
             // Class Annotation
             if (cls.isAnnotationPresent(DmsController.class)) {
-                DmsController annotation = cls.getAnnotation(DmsController.class);
-                final String path = annotation.value();
-
-                // Method Annotation
-                for (Method method : cls.getDeclaredMethods()) {
-                    if (method.isAnnotationPresent(DmsRequestMapping.class)) {
-                        // Method Annotation 처리
-                        DmsRequestMapping mappingAnnotation = method.getAnnotation(DmsRequestMapping.class);
-                        
-                        // 중복된 Route가 존재하는지 체크
-                        String fullPath = path + mappingAnnotation.value();
-                        if (registeredRoutes.contains(fullPath)) {
-                            throw new IllegalArgumentException("중복 경로가 발견되었습니다: " + fullPath);
-                        } else {
-                            registeredRoutes.add(fullPath);
-                        }
-                        
-                        // Annotation에 작성된 Methods 목록 가져오기
-                        String[] mappingMethods = mappingAnnotation.methods();
-                        if( mappingMethods == null || mappingMethods.length == 0 ){
-                            mappingMethods = DEFAULT_METHODS;
-                        }
-                        Set<HttpMethod> httpMethods = (Set<HttpMethod>) Arrays.stream(mappingMethods)
-                            .map(httpMethod -> { 
-                                return new HttpMethod(httpMethod);
-                            }).collect(Collectors.toSet());
-
-                        // 등록된 경로 로그 출력
-                        log.info("Route: http://{}:{}{}, Allow: {}", this.httpHost, this.httpPort, fullPath, httpMethods);
-
-                        // Vertx Route 생성
-                        for(HttpMethod httpMethod : httpMethods){
-                            Route route = router.route(fullPath);
-                            route.method(httpMethod);
-                            route.handler(CorsHandler.create().addOrigin("*").allowedMethod(httpMethod));
-                            route.handler(ctx -> {
-                                try {
-                                    log.info("[{}] {}", ctx.request().method().name(), ctx.request().path());
-                                    method.invoke(verticleInstance, ctx);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            });
-                            route.failureHandler(ctx -> {
-                                ctx.response().end(ctx.failure().getMessage());
-                            });
-                        }
-                    }
-                }
+                createController(restRouer, cls, config);
+            } else if(cls.isAnnotationPresent(DmsSubscribe.class)){
+                createEventBus(eventBusRouer, cls, config);
             }
         }
+        mainRouter.route("/*").subRouter(restRouer);
+        mainRouter.route("/eventbus/*").subRouter(eventBusRouer);
     }
 
-  
     /**
-     * 라우팅 처리
+     * Route 추가
      * @param router
+     * @param path
+     * @param httpMethods
+     * @param requestHandler
+     * @param faiHandler
      */
-    private void setSubscribe(JsonObject config) throws Exception {
+    private void addRoute(Router router, String path, Set<HttpMethod> httpMethods, Handler<RoutingContext> requestHandler, Handler<RoutingContext> faiHandler){
+        // Vertx Route 생성
+        Route route = router.route(path);
+        for(HttpMethod httpMethod : httpMethods){
+            route.method(httpMethod);
+        }
+        route.handler(CorsHandler.create().addOrigin("*").allowedMethods(httpMethods));
+        route.handler(requestHandler);
+        route.failureHandler(faiHandler);
+        
+        // 등록된 경로 로그 출력
+        log.info("Route: http://{}:{}{}, Allow: {}", this.httpHost, this.httpPort, path, httpMethods);
+    }
+  
+    private <T> Set<Class<? extends T>> getClasses(Class<T> subClass, JsonObject config) {
         Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps.vertx"));
-        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(DmsSubscribe.class);
+        Set<Class<? extends T>> classes = reflections.getSubTypesOf(subClass);
+        return classes;
+    }
 
-        // 어노테이션을 적용받은 클래스들을 찾아 라우팅 설정
-        for (Class<?> cls : classes) {
-            // Class Annotation 데이터 추출           
-            DmsSubscribe annotation = cls.getAnnotation(DmsSubscribe.class);
-            final String message = annotation.value().isBlank() ? annotation.message() : annotation.value();
-            final int workers = annotation.workers();
+    private Set<Class<?>> getClassWithAnnotation(Class<? extends Annotation> annotationClass, JsonObject config){
+        Reflections reflections = new Reflections(config.getString("service.class", "com.dms.apps.vertx"));
+        Set<Class<?>> classes = reflections.getTypesAnnotatedWith(annotationClass);
+        return classes;
+    }
 
-            // Verticle 배포
-            DeploymentOptions options = new DeploymentOptions().setConfig(config);
-            DmsAbstractWorker workerInstance = (DmsAbstractWorker) cls.getDeclaredConstructor().newInstance();
-            // workerInstance.setClient(dmsRedisClient);
-            workerInstance.setMessage(message);
-            workerInstance.setWorkers(workers);
+    private void injectFields(Object instance, Field[] fields){
+        for (Field field : fields) {
+            if (field.isAnnotationPresent(DmsInject.class)) {
+                field.setAccessible(true); // private
 
-            // Field Annotation
-            for (Field field : cls.getDeclaredFields()) {
-                if (field.isAnnotationPresent(DmsInject.class)) {
-                    field.setAccessible(true); // private
-
-                    Class<?> fieldClass = field.getType();
-                    try {
-                        if( fieldClass.equals(DmsDBClient.class) ){
-                            field.set(workerInstance, this.dmsDBClient);
-                        } 
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    } catch (Exception e){
-                        e.printStackTrace();
+                Class<?> fieldClass = field.getType();
+                try {
+                    if( fieldClass.equals(DmsDBClient.class) ){
+                        field.set(instance, this.dmsDBClient);
+                    } else if ( fieldClass.equals(DmsRedisClient.class) ){
+                        field.set(instance, this.dmsRedisClient);
                     }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (Exception e){
+                    e.printStackTrace();
                 }
             }
-
-            vertx.deployVerticle(workerInstance, options);
         }
     }
+
+    /**
+     * Rest Route 처리
+     * @param router
+     * @param clazz
+     * @param config
+     * @throws Exception
+     */
+    private void createController(Router router, Class<?> clazz, JsonObject config) throws Exception {
+        // Class Annotation 데이터 추출
+        DmsController annotation = clazz.getAnnotation(DmsController.class);
+        final String path = annotation.value();
+
+        // Verticle 배포
+        DeploymentOptions options = new DeploymentOptions().setConfig(config);
+        DmsAbstractVerticle verticleInstance = (DmsAbstractVerticle) clazz.getDeclaredConstructor().newInstance();
+
+        // Field Annotation
+        Field[] fields = clazz.getDeclaredFields();
+        injectFields(verticleInstance, fields);
+
+        // Method Annotation
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(DmsRequestMapping.class)) {
+                // Method Annotation 처리
+                DmsRequestMapping mappingAnnotation = method.getAnnotation(DmsRequestMapping.class);
+                
+                // 중복된 Route가 존재하는지 체크
+                String fullPath = path + mappingAnnotation.value();
+                if (registeredRoutes.contains(fullPath)) {
+                    throw new IllegalArgumentException("중복 경로가 발견되었습니다: " + fullPath);
+                } else {
+                    registeredRoutes.add(fullPath);
+                }
+                
+                // Annotation에 작성된 Methods 목록 가져오기
+                String[] mappingMethods = mappingAnnotation.methods();
+                if( mappingMethods == null || mappingMethods.length == 0 ){
+                    mappingMethods = DEFAULT_METHODS;
+                }
+                Set<HttpMethod> httpMethods = (Set<HttpMethod>) Arrays.stream(mappingMethods)
+                    .map(httpMethod -> { 
+                        return new HttpMethod(httpMethod);
+                    }).collect(Collectors.toSet());
+
+                // Router 추가
+                addRoute(router, fullPath, httpMethods, ctx -> {
+                    try {
+                        log.info("[{}] {}", ctx.request().method().name(), ctx.request().path());
+                        method.invoke(verticleInstance, ctx);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }, ctx -> {
+                    ctx.response().end(ctx.failure().getMessage());
+                });
+            }
+        }
+
+        // Verticle 배포
+        vertx.deployVerticle(verticleInstance, options);
+    }
+
+    /**
+     * EventBus Route 처리
+     * @param router
+     * @param clazz
+     * @param config
+     * @throws Exception
+     */
+    private void createEventBus(Router router, Class<?> clazz, JsonObject config) throws Exception {
+        // Class Annotation 데이터 추출
+        DmsSubscribe annotation = clazz.getAnnotation(DmsSubscribe.class);
+        final String message = annotation.value().isBlank() ? annotation.message() : annotation.value();
+        final int workers = annotation.workers();
+
+        // Verticle Instance 생성
+        DeploymentOptions options = new DeploymentOptions().setConfig(config);
+        DmsAbstractWorker workerInstance = (DmsAbstractWorker) clazz.getDeclaredConstructor().newInstance();
+        workerInstance.setMessage(message);
+        workerInstance.setWorkers(workers);
+
+        // Field Annotation Inject
+        Field[] fields = clazz.getDeclaredFields();
+        injectFields(workerInstance, fields);
+
+        // -> Other Process Here
+        SockJSHandlerOptions sockJSHandlerOptions = new SockJSHandlerOptions()
+            .setHeartbeatInterval(2000);
+
+        SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions()
+            .addInboundPermitted(new PermittedOptions().setAddress(message))
+            .addOutboundPermitted(new PermittedOptions().setAddress(message));
+        
+        SockJSHandler sockJSHandler = SockJSHandler.create(vertx, sockJSHandlerOptions);
+
+        // router.route("/*").subRouter(sockJSHandler.bridge(bridgeOptions));
+        router.route("/*").subRouter(sockJSHandler.socketHandler(sockJSSocket -> {
+            // Retrieve the writeHandlerID and store it (e.g. in a local map)
+            String writeHandlerID = sockJSSocket.writeHandlerID();
+            log.info("writeHandlerID: {}", writeHandlerID);
+            sockJSSocket.write("ping");
+
+            // Just echo the data back
+            // sockJSSocket.handler(sockJSSocket::write);
+        }));
+
+        // <- Other Process Here
+        log.info("Route: http://{}:{}{}, Allow: {}", this.httpHost, this.httpPort, "/eventbus", message);
+
+        // Verticle 배포
+        vertx.deployVerticle(workerInstance, options);
+    }
+
 }
