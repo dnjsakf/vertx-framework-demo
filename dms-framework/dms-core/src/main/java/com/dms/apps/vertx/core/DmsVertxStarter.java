@@ -39,7 +39,8 @@ public class DmsVertxStarter {
 
         ConfigRetrieverOptions retrieverOptions = new ConfigRetrieverOptions()
             .addStore(commonFileStore)
-            .addStore(jsonFileStore);
+            .addStore(jsonFileStore)
+            .addStore(syStoreOptions);
 
         ConfigRetriever retriever = ConfigRetriever.create(vertx, retrieverOptions);
         retriever.getConfig(ar -> {
