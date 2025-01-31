@@ -40,7 +40,6 @@ import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
-import io.vertx.spi.cluster.hazelcast.ClusterHealthCheck;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -192,8 +191,6 @@ public class DmsVertxVerticle extends AbstractVerticle {
                 .register("status-health", promise -> {
                     promise.complete(Status.OK());
                 });
-            HealthChecks clusterHealthCheck = HealthChecks.create(vertx)
-                .register("cluster-health", ClusterHealthCheck.createProcedure(vertx));
                 
             registeredRoutes.add("/index");
             registeredRoutes.add("/health");
@@ -202,8 +199,7 @@ public class DmsVertxVerticle extends AbstractVerticle {
 
             mainRouter.route().handler(bodyHandler);
             mainRouter.get("/index").handler(staticHandler);
-            // mainRouter.get("/health").handler(HealthCheckHandler.createWithHealthChecks(healthCheck));
-            // mainRouter.get("/readiness").handler(HealthCheckHandler.createWithHealthChecks(clusterHealthCheck));
+            mainRouter.get("/health").handler(HealthCheckHandler.createWithHealthChecks(healthCheck));
 
             addRoutes(mainRouter, config);
 

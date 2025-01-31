@@ -98,11 +98,11 @@
             <version>${vertx.version}</version>
         </dependency>
         <!-- Vertx Clustering -->
-        <dependency>
+        <!-- <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-hazelcast</artifactId>
             <version>${vertx.version}</version>
-        </dependency>
+        </dependency> -->
 
         <!-- Lombok Dependencies -->
         <dependency>
@@ -153,18 +153,18 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>io.reactiverse</groupId>

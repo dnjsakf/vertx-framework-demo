@@ -18,7 +18,7 @@ public class DmsVertxStarter {
 
     public void start(){
         // System.setProperty("redeploy", "**/*.java");
-        System.setProperty("hazelcast.logging.type", "slf4j");
+        // System.setProperty("hazelcast.logging.type", "slf4j");
         System.setProperty("java.net.preferIPv4Stack", "true");
 
         Vertx vertx = Vertx.vertx();
@@ -32,6 +32,10 @@ public class DmsVertxStarter {
             .setType("file")
             .setFormat("json")
             .setConfig(new JsonObject().put("path", "properties/vertx-config.json"));
+
+        ConfigStoreOptions syStoreOptions = new ConfigStoreOptions()
+            .setType("sys")
+            .setConfig(new JsonObject().put("hierarchical", true));
 
         ConfigRetrieverOptions retrieverOptions = new ConfigRetrieverOptions()
             .addStore(commonFileStore)
