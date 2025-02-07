@@ -6,6 +6,34 @@
     "configurations": [
       {
         "type": "java",
+        "name": "ProducerApp",
+        "request": "launch",
+        "mainClass": "com.dms.apps.ProducerApp",
+        "projectName": "dms-app-template"
+      },
+      {
+        "type": "java",
+        "name": "ConsumerApp",
+        "request": "launch",
+        "mainClass": "com.dms.apps.ConsumerApp",
+        "projectName": "dms-app-template"
+      },
+      {
+        "type": "java",
+        "name": "FlumeApp",
+        "request": "launch",
+        "mainClass": "com.dms.apps.FlumeApp",
+        "projectName": "dms-app-template"
+      },
+      {
+        "type": "java",
+        "name": "Application",
+        "request": "launch",
+        "mainClass": "com.dms.apps.Application",
+        "projectName": "dms-app-template"
+      },
+      {
+        "type": "java",
         "name": "DmsVertxClusterStarter",
         "request": "launch",
         "mainClass": "com.dms.apps.vertx.core.DmsVertxClusterStarter",

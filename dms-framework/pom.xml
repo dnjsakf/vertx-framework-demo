@@ -204,6 +204,7 @@
         <module>vertx-user-api</module>
         <module>vertx-admin-api</module>
         <module>vertx-rest-api</module>
+        <module>dms-app-template</module>
     </modules>
 
 </project>
