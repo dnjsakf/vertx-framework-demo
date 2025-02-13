@@ -4,11 +4,11 @@ FROM wurstmeister/kafka:2.12-2.1.0
 RUN mkdir -p /var/lib/kafka/conf
 
 # 접속 정보 파일 복사
-COPY ./kafka/conf/auth/consumer1.properties /var/lib/kafka/conf/auth/consumer1.properties
-COPY ./kafka/conf/auth/consumer2.properties /var/lib/kafka/conf/auth/consumer2.properties
+COPY kafka/conf/auth/consumer1.properties /var/lib/kafka/conf/auth/consumer1.properties
+COPY kafka/conf/auth/consumer2.properties /var/lib/kafka/conf/auth/consumer2.properties
 
 # 필요한 스크립트 파일 복사
-COPY ./bin/initialize.sh /usr/bin/initialize.sh
+COPY kafka/bin/initialize.sh /usr/bin/initialize.sh
 
 # 실행 권한 부여
 RUN chmod +x /usr/bin/initialize.sh
