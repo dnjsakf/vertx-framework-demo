@@ -1,0 +1,63 @@
+version: '3.1'
+services:
+    
+  zookeeper:
+    build:
+      context: .
+      dockerfile: Dockerfile.zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      KAFKA_OPTS: '-Djava.security.auth.login.config=/var/lib/zookeeper/conf/auth/zookeeper_jaas.conf'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./zookeeper/conf:/var/lib/zookeeper/conf
+      - zookeeper-data:/kafka
+
+  kafka-01:
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka
+    container_name: kafka-01
+    ports:
+      - "9092:9092"
+      - "9094:9094" # 외부접속 PORT
+    environment: 
+      ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_OPTS: '-Djava.security.auth.login.config=/var/lib/kafka/conf/auth/kafka_jaas.conf'
+      KAFKA_BROKER_ID: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kafka/conf/auth:/var/lib/kafka/conf/auth
+      - ./kafka/temp:/kafka
+      - kafka-data:/var/lib/kafka/logs
+    depends_on:
+      - zookeeper
+
+  kafka-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.initialize
+    container_name: kafka-init
+    environment:
+      ZOOKEEPER_CONNECT: zookeeper:2181
+      BOROKER_LIST: kafka-01:9092
+      TOPIC_NAME: topic-navilog2-acs-post-json
+      GROUP_NAME: "acs-group"
+      USER_NAMES: "consumer1,consumer2"
+      USER_ROLES: "consumer,producer"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - kafka-temp:/kafka
+    depends_on:
+      - zookeeper
+      - kafka-01
+
+volumes:
+  kafka-data:
+    driver: local
+  kafka-temp:
+    driver: local
+  zookeeper-data:
+    driver: local

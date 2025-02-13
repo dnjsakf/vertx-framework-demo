@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns:flume="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     <parent>
           <groupId>com.dms.apps</groupId>
@@ -15,6 +16,7 @@
     <properties>
 		<flume.version>1.9.0</flume.version>
         <kafka.version>2.1.0</kafka.version>
+        <postgres.version>42.7.5</postgres.version>
     </properties>
 
     <dependencies>
@@ -41,6 +43,12 @@
 			<artifactId>flume-kafka-source</artifactId>
 			<version>${flume.version}</version>
 	    </dependency>
+        <!-- JDBC Dependencies -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgres.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

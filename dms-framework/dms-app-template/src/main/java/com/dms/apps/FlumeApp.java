@@ -5,16 +5,21 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.flume.node.Application;
 import org.apache.flume.node.PropertiesFileConfigurationProvider;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class FlumeApp extends Application {
     
     public static void main(String[] args) {
 
         FlumeApp flumeApp = new FlumeApp();
 
+        // File properties = flumeApp.getConfigFileStream("properties/application.properties");
         File configFile = flumeApp.getConfigFileStream("properties/flume.properties");
 
         // Flume Initialize
@@ -25,6 +30,13 @@ public class FlumeApp extends Application {
 
 		flumeApp.handleConfigurationEvent(configurationProvider.getConfiguration());
 		flumeApp.start();
+
+        
+        // Runtime 종료 후 producer와 executorService 종료
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            flumeApp.stop();
+            log.info("Stoped");
+        }));
         
     }
 

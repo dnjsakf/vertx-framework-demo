@@ -1,0 +1,248 @@
+package com.skb.acs.eventlog.flume.sink;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.flume.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
+import com.google.common.base.Preconditions;
+import com.skb.acs.common.util.Const;
+import com.skb.acs.common.util.NaviLogV2ParserUtil;
+import com.skb.acs.eventlog.flume.manager.PropertiesManager;
+
+/**
+ * @FileName : NaviLogV2StatementJDBCSink.java  
+ * @Date : 2021. 10. 19.
+ * @작성자 : 허정운
+ * @변경이력 :
+ * @프로그램 설명 : Flume JDBC Sink
+ */
+public class NaviLogV2StatementJDBCSink extends AbstractJDBCSink {
+	
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+
+    private static PropertiesManager propManager = PropertiesManager.getInstance();
+    private static NaviLogV2ParserUtil parserUtil = NaviLogV2ParserUtil.getInstance();
+    
+	private PreparedStatement statement;
+
+	private String EXECUTE_SQL = "";
+	private String database = null;
+	private String tableType = null;
+    
+	private String[] COLUMN_NAMES;
+	private int[] COLUMN_TYPES;
+	private int[] COLUMN_LENGTH;
+	private String[] STB_IDS;
+	
+	private String sinkNum;
+	
+    @Override
+    public void configure(final Context context) {
+        
+		/** Sink Number **/
+		sinkNum = getName().substring(getName().length()-2);
+		
+    	/** Get database-info from flume.properties **/
+		database = context.getString("database");
+		Preconditions.checkNotNull(database, "Database must be specified. Please check 'flume.properties'");
+		
+		tableType = context.getString("tableType", Const.DEFAULT_EVENT_LOG_TABLE_TYPE);
+		Preconditions.checkNotNull(tableType, "tableType must be specified. Please check 'flume.properties'");
+
+		/** Append 'database-info in eventlog.properties' properties */
+		context.putAll( propManager.getDatabaseMap(database) );
+
+		/** Get database-info from eventlog.properties **/
+		tableType = tableType.toLowerCase();
+		
+		String sqlCtx =  context.getString(String.format("%s.sql", tableType));
+		Preconditions.checkNotNull(sqlCtx, "Sql must be specified. Please check 'eventlog.properties'.");
+		
+		String columnsCtx =  context.getString(String.format("%s.columns", tableType));
+		Preconditions.checkNotNull(columnsCtx, "Columns must be specified. Please check 'eventlog.properties'.");
+		
+		String testStbCtx =  context.getString(String.format("%s.stbId", tableType), "");
+		
+		/** Set SQL & Columns **/
+		EXECUTE_SQL = sqlCtx;
+		COLUMN_NAMES = StringUtils.commaDelimitedListToStringArray(columnsCtx);
+		COLUMN_TYPES = new int[COLUMN_NAMES.length];
+		COLUMN_LENGTH = new int[COLUMN_NAMES.length];
+		
+		for(int i = 0; i < COLUMN_NAMES.length; i++) {
+			
+			String[] temp = COLUMN_NAMES[i].split(":");	// NAME:TYPE[:LENGTH]
+			
+			if( temp != null && temp.length > 0 ) {
+				COLUMN_NAMES[i] = temp[0];
+				COLUMN_TYPES[i] = setDataType( temp[1] );
+				COLUMN_LENGTH[i] = temp.length > 2 ? Integer.valueOf(temp[2]) : -1;
+			}
+		}
+		
+		if( !"".equals( testStbCtx ) ) {
+			STB_IDS = StringUtils.commaDelimitedListToStringArray(testStbCtx);
+		}
+		
+        super.configure(context);
+    }
+
+    @Override
+    protected void prepareJDBC() throws SQLException {
+        // Prepare the prepared statement.
+        statement = getConnection().prepareStatement(EXECUTE_SQL);
+    }
+    
+    @Override
+    protected int processJDBC(final byte[] body) throws Exception {
+        // Set all of the parameters into the prepared statement, then add to batch.
+        int logLength = 0;
+
+        List<Map<String, Object>> naviLogList = parserUtil.getNaviLog(body, tableType);
+        if( naviLogList == null || naviLogList.size() == 0 ){
+            return logLength;
+        }
+        
+        for( Map<String, Object> naviLogMap : naviLogList ){
+            /**
+             * 1. 테스트 셋톱 저장
+             */
+            if( Const.FLUME_TABLE_TYP_TEST.equals( tableType ) ) {
+                if( STB_IDS == null || STB_IDS.length == 0  ){
+                    return logLength;
+                }
+                String stbId = (String) naviLogMap.get(Const.NAVI_LOG_V2_STB_ID);
+                for(String chkStbId : STB_IDS) {
+                    if( chkStbId.equals(stbId) ) {
+                        return logLength;
+                    }
+                }
+            }
+            
+            Object value = null;
+            
+            /**
+             * 2. 데이터  매핑
+             */
+            statement.clearParameters();
+            for(int i = 0; i < COLUMN_NAMES.length; i++) {
+                value = naviLogMap.get(COLUMN_NAMES[i]);
+                if( value == null ) {
+                    statement.setNull(i+1, COLUMN_TYPES[i]);
+                } else {
+                    if( COLUMN_TYPES[i] == Types.VARCHAR && value instanceof String ){
+                        if( COLUMN_LENGTH[i] > 0 && ((String) value).length() > COLUMN_LENGTH[i] ) {
+                            value = ((String) value).substring(0, COLUMN_LENGTH[i]);
+                        }
+                    }
+                    statement.setObject(i+1, value);
+                }
+            }
+            statement.addBatch();
+            
+            logLength += 1;
+        }
+            
+        return logLength;
+    }
+    
+    @Override
+    protected void completeJDBC() throws Exception {
+        try {
+        	
+        	statement.executeBatch();
+        	
+        } catch ( SQLException e ) {
+//        	e.printStackTrace();
+        	
+        	boolean passExeption = false;
+        	
+        	/***************************
+        	 * 키중복 외 Exception 발생시 throw 
+        	 ***************************/			
+        	if( database != null ) {
+        		if ( "ORACLE".equals(database.toUpperCase()) ) {
+        			passExeption = "23000".equals(e.getSQLState()) && e.getErrorCode() == 1;
+        		}
+        		/**
+        		 * DB2는 BATCH실행시 오류가 발생하면 아래와 같은 오류로 통합되어 판단할 수 없음.
+        		 * 
+        		 * [jcc][t4][102][10040][4.14.111] 일괄처리에 실패했습니다. 일괄처리가 제출되었지만 각 일괄처리 구성원에서 최소 한 개의 예외가 발생했습니다. 
+        		 * getNextException()을 사용하여 특정 일괄처리 요소에 대한 예외를 검색하십시오.  ERRORCODE=-4229, SQLSTATE=null
+        		 * 
+        		if( "DB2".equals(database.toUpperCase()) ) {
+        			if( e.getSQLState() != null && e.getErrorCode() != (-4229) ) {
+            			throw e;
+                	}
+        		} 
+        		**/
+        	}
+        	
+        	if( passExeption ) {
+        		LOGGER.info("[{}] {}", database , e.getMessage());
+        	} else {
+        		throw e;
+        	}
+        	
+        } catch ( Exception e ) {
+        	throw e;
+        } finally {
+            statement.close();
+        }
+    }
+
+    @Override
+    protected void abortJDBC() {
+        try {
+            if (statement!=null) {
+        	    statement.close();
+            }
+        } catch (final SQLException e) {
+        	e.printStackTrace();
+        	LOGGER.info("@@@@@@@@@@@@@@@@@@@@@@@ ABORT_1", e);
+        } catch (Exception e) {
+        	LOGGER.info("@@@@@@@@@@@@@@@@@@@@@@@ ABORT_2", e);
+        } finally {
+            statement = null;
+        }
+    }
+    
+    /**
+     * Sink 수행 상태 조회
+     *   - tableType이 "TEST"인 Sink만 File을 읽어서 조회하고
+     *     나머지 Sink는 변수에 저장된 상태를 바라본다.
+     *   - execution이 "0" -> "1"로 변경되었을 때, 필터링 목록을 다시 불러옴
+     * @return boolean
+     * @throws Exception
+     */
+    @Override
+    protected boolean checkExecutionStatus() throws Exception {
+        if( Const.FLUME_TABLE_TYP_TEST.equals(tableType) ){
+            // Sink 수행 상태 조회
+            String status = parserUtil.getSinkStatus(Const.FLUME_STATUS_EXECUTION);
+            boolean isRunning = Const.FLUME_STATUS_EXECUTION_RUN.equals(status);
+            if( !parserUtil.getSinkStatusExecution() && isRunning ){ // 정지 -> 수행
+                LOGGER.info(">>>>>> START RELOAD loadFilterInfo");
+                parserUtil.loadFilterInfo();
+                LOGGER.info(">>>>>> End RELOAD loadFilterInfo");
+            }
+            parserUtil.setSinkStatusExecution(isRunning);
+            // Sink 수행 상태 조회
+            
+            // 미확인 필터링 목록 메일 발송
+            status = parserUtil.getSinkStatus(Const.FLUME_STATUS_FILTER_REPORT);
+            if( Const.FLUME_STATUS_FILTER_REPORT_RUN.equals(status) ){
+                parserUtil.sendFilterReport();
+            }
+            // 미확인 필터링 목록 메일 발송
+        }
+        return parserUtil.getSinkStatusExecution();
+    }
+}

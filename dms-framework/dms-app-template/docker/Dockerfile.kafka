@@ -1,0 +1,19 @@
+FROM wurstmeister/kafka:2.12-2.1.0
+
+# 필요한 디렉토리 생성
+RUN mkdir -p /var/lib/kafka
+
+COPY ./kafka/conf/kafka.properties /var/lib/kafka/conf/kafka.properties
+
+# 필요한 스크립트 파일 복사
+COPY ./bin/kafka-start.sh /usr/bin/kafka-start.sh
+COPY ./bin/kafka-consumer.sh /usr/bin/kafka-consumer.sh
+COPY ./bin/kafka-producer.sh /usr/bin/kafka-producer.sh
+
+# 실행 권한 부여
+RUN chmod +x /usr/bin/kafka-start.sh
+RUN chmod +x /usr/bin/kafka-consumer.sh
+RUN chmod +x /usr/bin/kafka-producer.sh
+
+# 컨테이너 시작 시 스크립트 실행
+CMD ["bash", "-c", "/usr/bin/kafka-start.sh"]

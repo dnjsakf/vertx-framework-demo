@@ -1,4 +1,4 @@
-package com.dms.apps;
+package com.dms.apps.flume.sink;
 
 import org.apache.flume.Channel;
 import org.apache.flume.Context;
@@ -11,7 +11,6 @@ import org.apache.flume.instrumentation.SinkCounter;
 import org.apache.flume.sink.AbstractSink;
 
 import lombok.extern.slf4j.Slf4j;
-import scala.collection.script.Update;
 
 @Slf4j
 public class FlumeCustomSink extends AbstractSink implements Configurable {
@@ -23,6 +22,7 @@ public class FlumeCustomSink extends AbstractSink implements Configurable {
     public Status process() throws EventDeliveryException {
         Status status = Status.READY;
         
+		int attemptCount = 1;
 		if( Status.READY == status ) {
 			final Channel channel = getChannel();
 			final Transaction channelTransaction = channel.getTransaction();
@@ -36,12 +36,12 @@ public class FlumeCustomSink extends AbstractSink implements Configurable {
 
                 log.info("Sink!!! {}", new String(body));
 
-                status = updateAttemptCounters(0);
+                status = updateAttemptCounters(attemptCount);
                 
 				channelTransaction.commit();
 				
 				// Update success counters.
-				updateSuccessCounters(1);
+				updateSuccessCounters(attemptCount);
 
             } catch ( UnsupportedOperationException e ){
 				channelTransaction.rollback();
